@@ -9,12 +9,14 @@ This document captures the architectural shape of the system: how requests flow,
 ## 1. Goals & non-goals
 
 **Goals**
+
 - Manage a workforce of ~10,000 employees with sub-200ms list/search response times on commodity hardware.
 - Provide a salary analytics dashboard that is correct, fast, and time-aware (a raise today should be queryable as "what was the median in Q1?" tomorrow).
 - Be testable at every layer without spinning up the full app.
 - Be deployable in one command.
 
 **Non-goals (for this iteration)**
+
 - Authentication / RBAC (the system is single-tenant admin-only; auth is a clear M6).
 - Multi-currency conversion at query time (we store currency per row; conversion is a presentation concern).
 - Real-time collaboration / websockets.
@@ -23,19 +25,19 @@ This document captures the architectural shape of the system: how requests flow,
 
 ## 2. Tech stack
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Framework | Next.js 15 (App Router) | RSC for read-heavy dashboards; Server Actions for type-safe mutations. |
-| Language | TypeScript (strict) | Type safety end-to-end, including DB schema via Drizzle. |
-| DB (dev) | SQLite via `better-sqlite3` | Zero-ops, synchronous API, fast for single-node workloads. |
-| DB (prod) | libSQL / Turso | Same dialect, but durable on serverless (Vercel filesystem is ephemeral). |
-| ORM | Drizzle | SQL-first, no runtime, generates types from schema, supports migrations. |
-| Validation | Zod | One schema reused by form, server action, repository boundary. |
-| UI | Tailwind + minimal in-house primitives | No heavy component library; faster bundle. |
-| Charts | Recharts | Declarative, RSC-friendly via dynamic import. |
-| Testing | Jest + React Testing Library | Unit + integration + component coverage. |
-| CI | GitHub Actions | Lint → typecheck → test → build on every PR. |
-| Hosting | Vercel (app) + Turso (DB) | Free tier suffices for demo; both scale up cleanly. |
+| Layer      | Choice                                       | Reason                                                                                                                                                                                                                 |
+| ---------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework  | Next.js 15 (App Router)                      | RSC for read-heavy dashboards; Server Actions for type-safe mutations.                                                                                                                                                 |
+| Language   | TypeScript (strict)                          | Type safety end-to-end, including DB schema via Drizzle.                                                                                                                                                               |
+| DB client  | `@libsql/client` (dev + prod)                | One client for both environments: local file URL in dev, Turso URL in prod. Avoids native-build friction (`better-sqlite3` requires VS Build Tools on Windows) and guarantees zero dialect drift between dev and prod. |
+| DB engine  | SQLite (file) in dev, Turso (libSQL) in prod | Vercel's filesystem is ephemeral, so a file DB cannot serve production. Turso is libSQL-on-the-edge, fully wire-compatible with the local file.                                                                        |
+| ORM        | Drizzle                                      | SQL-first, no runtime, generates types from schema, supports migrations.                                                                                                                                               |
+| Validation | Zod                                          | One schema reused by form, server action, repository boundary.                                                                                                                                                         |
+| UI         | Tailwind + minimal in-house primitives       | No heavy component library; faster bundle.                                                                                                                                                                             |
+| Charts     | Recharts                                     | Declarative, RSC-friendly via dynamic import.                                                                                                                                                                          |
+| Testing    | Jest + React Testing Library                 | Unit + integration + component coverage.                                                                                                                                                                               |
+| CI         | GitHub Actions                               | Lint → typecheck → test → build on every PR.                                                                                                                                                                           |
+| Hosting    | Vercel (app) + Turso (DB)                    | Free tier suffices for demo; both scale up cleanly.                                                                                                                                                                    |
 
 ---
 
@@ -56,6 +58,7 @@ A **layered modular monolith** running inside a single Next.js process. Strict o
 ```
 
 **Rules**
+
 - Only `repositories/*` import from `lib/db`. Services and pages must not touch Drizzle directly.
 - Services are pure TypeScript and accept a repository (or repository interface) as a dependency — they are unit-testable with no DB.
 - Server Actions and route handlers are thin: validate input (Zod), call a service, return a typed response.
@@ -119,19 +122,20 @@ roles ────────┼──► employees ──1..N──► salarie
 manager ──────┘     │ self-FK
 ```
 
-| Table | Purpose | Notable columns |
-|---|---|---|
-| `departments` | Org units | `name UNIQUE`, `cost_center` |
-| `roles` | Job titles / levels | `title UNIQUE`, `level`, `job_family` |
-| `employees` | Workforce | `employee_code UNIQUE`, `email UNIQUE`, `manager_id` self-FK, `status` enum, `deleted_at` (soft delete) |
-| `salaries` | **History-aware** comp records | `base_salary` INTEGER (cents), `effective_from`, `effective_to NULL`, `reason` |
-| `audit_log` | Mutation trail | `actor`, `entity_type`, `entity_id`, `diff` JSON |
+| Table         | Purpose                        | Notable columns                                                                                         |
+| ------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `departments` | Org units                      | `name UNIQUE`, `cost_center`                                                                            |
+| `roles`       | Job titles / levels            | `title UNIQUE`, `level`, `job_family`                                                                   |
+| `employees`   | Workforce                      | `employee_code UNIQUE`, `email UNIQUE`, `manager_id` self-FK, `status` enum, `deleted_at` (soft delete) |
+| `salaries`    | **History-aware** comp records | `base_salary` INTEGER (cents), `effective_from`, `effective_to NULL`, `reason`                          |
+| `audit_log`   | Mutation trail                 | `actor`, `entity_type`, `entity_id`, `diff` JSON                                                        |
 
 **Why integer cents:** floating-point breaks aggregation. `SUM(base_salary)` over 10k rows must be exact.
 
 **Why a `salaries` history table:** a salary change is an event, not an overwrite. Storing history means analytics can reconstruct any point in time, an auditor can trace a raise, and we never need a separate audit shadow table for comp. Current salary = `WHERE effective_to IS NULL`.
 
 **Indexes**
+
 - `employees (department_id, status)` — covers the most common list filter combo.
 - `employees (role_id)`, `employees (manager_id)`, `employees (email)`.
 - `salaries (employee_id, effective_to)` — current-salary lookup.
@@ -187,11 +191,11 @@ docs/{architecture.md,git-workflow.md,api.md,adr/}
 
 Three test rings, each fast enough to run on every commit (pre-push hook).
 
-| Ring | Target | Tooling | Example |
-|---|---|---|---|
-| **Unit** | Services, pure helpers, Zod schemas | Jest | "promote() applies the right effective_from" |
+| Ring            | Target                                                      | Tooling                          | Example                                                       |
+| --------------- | ----------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------- |
+| **Unit**        | Services, pure helpers, Zod schemas                         | Jest                             | "promote() applies the right effective_from"                  |
 | **Integration** | Repositories against a fresh in-memory SQLite per test file | Jest + better-sqlite3 `:memory:` | "findPage returns ordered, paginated rows with correct total" |
-| **Component** | UI in isolation | Jest + RTL | "EmployeeForm shows server validation errors inline" |
+| **Component**   | UI in isolation                                             | Jest + RTL                       | "EmployeeForm shows server validation errors inline"          |
 
 **TDD discipline:** every feature branch begins with a failing test commit (`test: …`), followed by the implementation commit (`feat: …`). The PR review checks both exist.
 
@@ -204,6 +208,7 @@ Coverage thresholds (in `jest.config.ts`): 80% lines on `services/`, `repositori
 The seed dataset is small enough to fit in memory but large enough to expose bad choices. We optimise the four hot paths.
 
 ### 8.1 List page
+
 - **Server-side pagination**: default 50 rows, max 200. Never `SELECT *` without `LIMIT`.
 - **Server-side filtering & search**: filter predicates run in SQL, hitting composite indexes. Free-text search uses the FTS5 table, not `LIKE %q%`.
 - **Single round trip**: list + total count via a single CTE (`WITH counted AS …`) to avoid two SQLite trips.
@@ -211,6 +216,7 @@ The seed dataset is small enough to fit in memory but large enough to expose bad
 - **No client-side full list ever**. If a user wants the whole dataset, we stream a CSV from `api/employees?format=csv`.
 
 ### 8.2 Analytics
+
 - **All aggregation in SQL.** Examples:
   - `SELECT department_id, AVG(base_salary), COUNT(*) FROM employees JOIN current_salary GROUP BY department_id`
   - Median via SQLite window function: `PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY base_salary)` (or `NTILE`).
@@ -219,17 +225,20 @@ The seed dataset is small enough to fit in memory but large enough to expose bad
 - **Cache hint**: analytics route handlers set `revalidate = 60` — dashboard data rarely needs sub-minute freshness.
 
 ### 8.3 Seed script
+
 - One **transaction**, **prepared statements**, batched inserts in chunks of 500.
 - Deterministic seeding (`faker` with fixed seed) so tests against seeded data are reproducible.
 - Target: 10k employees + 10k initial salary rows in under 2 seconds on a laptop.
 - WAL mode enabled (`PRAGMA journal_mode = WAL`) for concurrent reads during the seed.
 
 ### 8.4 Bundle / runtime
+
 - Recharts imported via `next/dynamic` with `ssr: false` only where unavoidable; otherwise charts render as RSC + client-side hydration of the chart container only.
 - No global state library; RSC + Server Actions remove the need.
 - Tailwind JIT keeps CSS under 20kb gzipped.
 
 ### 8.5 Verification
+
 - `EXPLAIN QUERY PLAN` checked on every aggregate query — must use an index, never a scan.
 - Lighthouse run in CI; budget: LCP < 1.5s on the analytics page with the full 10k dataset.
 

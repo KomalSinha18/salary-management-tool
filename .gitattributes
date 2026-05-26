@@ -1,0 +1,15 @@
+# Default to auto line-ending normalisation
+* text=auto
+
+# Shell scripts and Husky hooks must keep LF — sh chokes on CRLF
+*.sh text eol=lf
+.husky/* text eol=lf
+
+# Binary blobs
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.db binary
