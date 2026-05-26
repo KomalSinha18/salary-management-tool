@@ -23,11 +23,12 @@ const config = {
     '!src/**/*.d.ts',
     '!src/app/**/layout.tsx',
     '!src/app/**/page.tsx',
+    '!src/lib/db/**',
   ],
-  coverageThreshold: {
-    'src/lib/services/**/*.ts': { lines: 80, statements: 80, functions: 80, branches: 70 },
-    'src/lib/repositories/**/*.ts': { lines: 80, statements: 80, functions: 80, branches: 70 },
-  },
+  // Coverage thresholds for services/ and repositories/ are reintroduced
+  // in M1 alongside the first source files those globs match. Jest treats
+  // a threshold whose glob matches zero files as a failure, which would
+  // break CI before the M1 code lands.
   clearMocks: true,
 };
 
