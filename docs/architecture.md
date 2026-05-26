@@ -27,8 +27,8 @@ This document captures the architectural shape of the system: how requests flow,
 |---|---|---|
 | Framework | Next.js 15 (App Router) | RSC for read-heavy dashboards; Server Actions for type-safe mutations. |
 | Language | TypeScript (strict) | Type safety end-to-end, including DB schema via Drizzle. |
-| DB (dev) | SQLite via `better-sqlite3` | Zero-ops, synchronous API, fast for single-node workloads. |
-| DB (prod) | libSQL / Turso | Same dialect, but durable on serverless (Vercel filesystem is ephemeral). |
+| DB client | `@libsql/client` (dev + prod) | One client for both environments: local file URL in dev, Turso URL in prod. Avoids native-build friction (`better-sqlite3` requires VS Build Tools on Windows) and guarantees zero dialect drift between dev and prod. |
+| DB engine | SQLite (file) in dev, Turso (libSQL) in prod | Vercel's filesystem is ephemeral, so a file DB cannot serve production. Turso is libSQL-on-the-edge, fully wire-compatible with the local file. |
 | ORM | Drizzle | SQL-first, no runtime, generates types from schema, supports migrations. |
 | Validation | Zod | One schema reused by form, server action, repository boundary. |
 | UI | Tailwind + minimal in-house primitives | No heavy component library; faster bundle. |
