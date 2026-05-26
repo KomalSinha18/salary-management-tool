@@ -1,6 +1,6 @@
-import { departments, employees, roles } from '@/lib/db/schema';
+import { departments, employees, roles, salaries } from '@/lib/db/schema';
 import type { TestDb } from './test-db';
-import type { EmploymentType, EmployeeStatus } from '@/lib/db/schema';
+import type { EmploymentType, EmployeeStatus, SalaryReason } from '@/lib/db/schema';
 
 let codeCounter = 0;
 let emailCounter = 0;
@@ -85,5 +85,34 @@ export async function seedEmployee(
     .returning({ id: employees.id });
 
   if (!row) throw new Error('Failed to seed employee');
+  return row;
+}
+
+type SeedSalaryOverrides = Partial<{
+  baseSalary: number;
+  currency: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  reason: SalaryReason;
+}>;
+
+export async function seedSalary(
+  test: TestDb,
+  employeeId: number,
+  overrides: SeedSalaryOverrides = {},
+): Promise<{ id: number }> {
+  const [row] = await test.db
+    .insert(salaries)
+    .values({
+      employeeId,
+      baseSalary: overrides.baseSalary ?? 10_000_000,
+      currency: overrides.currency ?? 'USD',
+      effectiveFrom: overrides.effectiveFrom ?? '2024-01-01',
+      effectiveTo: overrides.effectiveTo ?? null,
+      reason: overrides.reason ?? 'hire',
+    })
+    .returning({ id: salaries.id });
+
+  if (!row) throw new Error('Failed to seed salary');
   return row;
 }
