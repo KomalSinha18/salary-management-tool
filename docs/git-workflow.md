@@ -22,12 +22,12 @@ We use **GitFlow-lite**: two long-lived branches and short-lived topic branches.
              └────────────────────── feature/db-schema
 ```
 
-| Branch | Lifetime | Receives | Protected |
-|---|---|---|---|
-| `main` | Permanent | PRs from `develop` (releases) or `hotfix/*` | yes — no direct pushes, required reviews, required CI |
-| `develop` | Permanent | PRs from `feature/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*`, `test/*`, `perf/*` | yes — required CI, linear history |
-| `feature/*` | Hours to ~2 days | direct commits | no |
-| `hotfix/*` | Minutes to hours | direct commits; merged into **both** `main` and `develop` | no |
+| Branch      | Lifetime         | Receives                                                                             | Protected                                             |
+| ----------- | ---------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| `main`      | Permanent        | PRs from `develop` (releases) or `hotfix/*`                                          | yes — no direct pushes, required reviews, required CI |
+| `develop`   | Permanent        | PRs from `feature/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*`, `test/*`, `perf/*` | yes — required CI, linear history                     |
+| `feature/*` | Hours to ~2 days | direct commits                                                                       | no                                                    |
+| `hotfix/*`  | Minutes to hours | direct commits; merged into **both** `main` and `develop`                            | no                                                    |
 
 **Why two long-lived branches?** `develop` lets us aggregate several feature merges and verify integration before promoting to production. For a solo project this is overkill in theory, but it demonstrates the discipline reviewers want to see.
 
@@ -41,18 +41,19 @@ Format:
 <type>/<scope>-<short-kebab-description>
 ```
 
-| Type | Used for |
-|---|---|
-| `feature` | New user-visible capability |
-| `fix` | Bug fix on `develop` |
-| `hotfix` | Urgent bug fix on `main` |
-| `chore` | Tooling, config, infra, deps |
-| `docs` | Docs only (no code) |
+| Type       | Used for                            |
+| ---------- | ----------------------------------- |
+| `feature`  | New user-visible capability         |
+| `fix`      | Bug fix on `develop`                |
+| `hotfix`   | Urgent bug fix on `main`            |
+| `chore`    | Tooling, config, infra, deps        |
+| `docs`     | Docs only (no code)                 |
 | `refactor` | Internal change, no behaviour delta |
-| `test` | Adding/restructuring tests only |
-| `perf` | Performance work |
+| `test`     | Adding/restructuring tests only     |
+| `perf`     | Performance work                    |
 
 **Good**
+
 ```
 feature/employees-crud
 feature/analytics-department-breakdown
@@ -63,6 +64,7 @@ perf/analytics-median-query
 ```
 
 **Bad**
+
 ```
 my-branch                  ← no type, no scope
 feature/stuff              ← unclear scope
@@ -84,18 +86,18 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/) v1.0, enf
 <footer — BREAKING CHANGE: …, Closes #12, Refs #34>
 ```
 
-| Type | Triggers minor version | Use for |
-|---|---|---|
-| `feat` | yes | New capability |
-| `fix` | no (patch) | Bug fix |
-| `perf` | no | Performance improvement |
-| `refactor` | no | Internal change, no behaviour delta |
-| `test` | no | Test-only changes |
-| `docs` | no | Documentation only |
-| `style` | no | Formatting, whitespace |
-| `chore` | no | Tooling, deps, config |
-| `build` | no | Build system, bundler |
-| `ci` | no | CI config |
+| Type       | Triggers minor version | Use for                             |
+| ---------- | ---------------------- | ----------------------------------- |
+| `feat`     | yes                    | New capability                      |
+| `fix`      | no (patch)             | Bug fix                             |
+| `perf`     | no                     | Performance improvement             |
+| `refactor` | no                     | Internal change, no behaviour delta |
+| `test`     | no                     | Test-only changes                   |
+| `docs`     | no                     | Documentation only                  |
+| `style`    | no                     | Formatting, whitespace              |
+| `chore`    | no                     | Tooling, deps, config               |
+| `build`    | no                     | Build system, bundler               |
+| `ci`       | no                     | CI config                           |
 
 Append `!` after type for breaking changes: `feat(api)!: rename /employees to /staff`.
 
@@ -142,21 +144,27 @@ chore(ci): add commitlint and conventional-changelog action
 
    ```markdown
    ## What
+
    <one paragraph>
 
    ## Why
+
    <link to issue / milestone, motivation>
 
    ## How
+
    <key decisions, alternatives considered>
 
    ## Tests
+
    <what's covered, what's deliberately not>
 
    ## Screenshots / output
+
    <if UI or CLI>
 
    ## Checklist
+
    - [ ] Tests added/updated
    - [ ] Docs updated (if behaviour or API changed)
    - [ ] Migration included (if schema changed)
@@ -191,13 +199,13 @@ chore(ci): add commitlint and conventional-changelog action
 
 ## 7. Automation
 
-| Hook / job | Tool | What it does |
-|---|---|---|
-| `pre-commit` | Husky + lint-staged | Prettier + ESLint on staged files |
-| `commit-msg` | Husky + commitlint | Reject non-conventional messages |
-| `pre-push` | Husky | Run `tsc --noEmit` and unit tests |
-| CI on PR | GitHub Actions | Lint, typecheck, all tests, build, Lighthouse budget |
-| CI on `main` push | GitHub Actions | Build + deploy to Vercel + run migrations |
+| Hook / job        | Tool                | What it does                                         |
+| ----------------- | ------------------- | ---------------------------------------------------- |
+| `pre-commit`      | Husky + lint-staged | Prettier + ESLint on staged files                    |
+| `commit-msg`      | Husky + commitlint  | Reject non-conventional messages                     |
+| `pre-push`        | Husky               | Run `tsc --noEmit` and unit tests                    |
+| CI on PR          | GitHub Actions      | Lint, typecheck, all tests, build, Lighthouse budget |
+| CI on `main` push | GitHub Actions      | Build + deploy to Vercel + run migrations            |
 
 ---
 
