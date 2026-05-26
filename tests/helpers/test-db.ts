@@ -17,7 +17,7 @@ export type TestDb = {
  * to release the underlying client.
  */
 export async function createTestDb(): Promise<TestDb> {
-  const client = createClient({ url: 'file::memory:?cache=shared' });
+  const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
 
   const migrationsFolder = path.resolve(__dirname, '..', '..', 'drizzle');
